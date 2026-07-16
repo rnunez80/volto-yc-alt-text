@@ -43,7 +43,7 @@
     "stylelint-prettier": "4.0.2"
   },
   "peerDependencies": {
-    "@plone/volto": "^17.0.0"
+    "@plone/volto": "^19.1.5"
   },
   "repository": {
     "type": "git",

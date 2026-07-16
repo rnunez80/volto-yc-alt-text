@@ -5,46 +5,50 @@
 
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { BodyClass, Helmet } from '@plone/volto/helpers';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
-import { keys, isEmpty } from 'lodash';
+import keys from 'lodash/keys';
+import isEmpty from 'lodash/isEmpty';
 import { defineMessages, injectIntl } from 'react-intl';
-import { Button, Grid, Menu, Dimmer, Loader } from 'semantic-ui-react';
-import { Portal } from 'react-portal';
+import { Button, Grid, Menu } from 'semantic-ui-react';
+import { createPortal } from 'react-dom';
 import { v4 as uuid } from 'uuid';
 import qs from 'query-string';
 import { toast } from 'react-toastify';
 
+import { createContent } from '@plone/volto/actions/content/content';
+import { getSchema } from '@plone/volto/actions/schema/schema';
+import { changeLanguage } from '@plone/volto/actions/language/language';
+import { setFormData } from '@plone/volto/actions/form/form';
+
+import Icon from '@plone/volto/components/theme/Icon/Icon';
+import Toolbar from '@plone/volto/components/manage/Toolbar/Toolbar';
+import Sidebar from '@plone/volto/components/manage/Sidebar/Sidebar';
+import Toast from '@plone/volto/components/manage/Toast/Toast';
+import TranslationObject from '@plone/volto/components/manage/Multilingual/TranslationObject';
+import { Form } from '@plone/volto/components/manage/Form';
+
+import { getBaseUrl, flattenToAppURL } from '@plone/volto/helpers/Url/Url';
 import {
-  createContent,
-  getSchema,
-  changeLanguage,
-  setFormData,
-} from '@plone/volto/actions';
-import {
-  Form,
-  Icon,
-  Toolbar,
-  Sidebar,
-  Toast,
-  TranslationObject,
-} from '@plone/volto/components';
-import {
-  getBaseUrl,
   hasBlocksData,
-  flattenToAppURL,
   getBlocksFieldname,
   getBlocksLayoutFieldname,
-  getLanguageIndependentFields,
-  langmap,
-  toGettextLang,
+} from '@plone/volto/helpers/Blocks/Blocks';
+import { getLanguageIndependentFields } from '@plone/volto/helpers/Content/Content';
+import langmap from '@plone/volto/helpers/LanguageMap/LanguageMap';
+import { toGettextLang } from '@plone/volto/helpers/Utils/Utils';
+import {
   getSimpleDefaultBlocks,
   getDefaultBlocks,
-} from '@plone/volto/helpers';
+} from '@plone/volto/helpers/Blocks/defaultBlocks';
+import {
+  tryParseJSON,
+  extractInvariantErrors,
+} from '@plone/volto/helpers/FormValidation/FormValidation';
+import BodyClass from '@plone/volto/helpers/BodyClass/BodyClass';
+import Helmet from '@plone/volto/helpers/Helmet/Helmet';
 
 import { preloadLazyLibs } from '@plone/volto/helpers/Loadable';
-import { tryParseJSON } from '@plone/volto/helpers';
 
 import config from '@plone/volto/registry';
 
@@ -52,8 +56,17 @@ import saveSVG from '@plone/volto/icons/save.svg';
 import clearSVG from '@plone/volto/icons/clear.svg';
 
 import describeImage from "../Blocks/Image/webhookDescription";
+const describer = new describeImage();
 
-const describer = new describeImage()
+function base64ToBlob(base64) {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: 'image/png' });
+}
 
 const messages = defineMessages({
   add: {
@@ -79,13 +92,7 @@ const messages = defineMessages({
   someErrors: {
     id: 'There are some errors.',
     defaultMessage: 'There are some errors.',
-  }, uploadingImage: {
-    id: 'Uploading image',
-    defaultMessage: 'Uploading image and Generating description',
-  }, uploading: {
-    id: 'Uploading',
-    defaultMessage: 'Uploading...',
-  }
+  },
 });
 
 /**
@@ -149,8 +156,6 @@ class Add extends Component {
       isClient: false,
       error: null,
       formSelected: 'addForm',
-      uploadingImage: false,
-      uploading: false
     };
   }
 
@@ -174,18 +179,12 @@ class Add extends Component {
     if (
       this.props.createRequest.loading &&
       nextProps.createRequest.loaded &&
-      nextProps.content['@type'] === this.props.type &&
-      (this.state.uploadingImage || this.state.uploading)
+      nextProps.content['@type'] === this.props.type
     ) {
       this.props.setFormData({});
       this.props.history.push(
         this.props.returnUrl || flattenToAppURL(nextProps.content['@id']),
       );
-      this.setState({
-        uploadingImage: false,
-        uploading: false
-      });
-
     }
 
     if (this.props.createRequest.loading && nextProps.createRequest.error) {
@@ -200,9 +199,7 @@ class Add extends Component {
       const errorsList = tryParseJSON(error);
       let erroMessage;
       if (Array.isArray(errorsList)) {
-        const invariantErrors = errorsList
-          .filter((errorItem) => !('field' in errorItem))
-          .map((errorItem) => errorItem['message']);
+        const invariantErrors = extractInvariantErrors(errorsList);
         if (invariantErrors.length > 0) {
           // Plone invariant validation message.
           erroMessage = invariantErrors.join(' - ');
@@ -211,7 +208,7 @@ class Add extends Component {
           erroMessage = this.props.intl.formatMessage(messages.someErrors);
         }
       } else {
-        erroMessage = error;
+        erroMessage = errorsList?.error?.message || error;
       }
 
       this.setState({ error: error });
@@ -233,18 +230,15 @@ class Add extends Component {
    * @returns {undefined}
    */
   async onSubmit(data) {
-    this.setState({ uploading: true, });
-
-    const image = data.image
+    const image = data.image;
     if (image) {
-      this.setState({ uploadingImage: true, });
-      this.setState({ uploading: false, });
-      const imageData = image.data
-      const imagefile = await this.base64ToBlob(imageData)
+      this.setState({ uploadingImage: true, uploading: false });
+      const imageData = image.data;
+      const imagefile = await base64ToBlob(imageData);
       let description, title;
       ({ description, title } = await describer.processImage(imagefile, this.props.rootTitle));
-      data.title = title
-      data.description = description
+      data.title = title;
+      data.description = description;
     }
 
     this.props.createContent(getBaseUrl(this.props.pathname), {
@@ -253,25 +247,11 @@ class Add extends Component {
         ? keys(this.props.schema.definitions)
         : null,
       '@type': this.props.type,
-      ...(config.settings.isMultilingual &&
-        this.props.location?.state?.translationOf && {
+      ...(this.props.location?.state?.translationOf && {
         translation_of: this.props.location.state.translationOf,
         language: this.props.location.state.language,
       }),
     });
-  }
-  base64ToBlob(base64) {
-    // Remove the base64 metadata if it exists
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-
-    const byteArray = new Uint8Array(byteNumbers);
-    const imageBlob = new Blob([byteArray], { type: 'image/png' });
-    return new File([imageBlob], 'image.png', { type: 'image/png' });
   }
 
   /**
@@ -284,9 +264,13 @@ class Add extends Component {
     if (this.props.location?.state?.translationOf) {
       const language = this.props.location.state.languageFrom;
       const langFileName = toGettextLang(language);
-      import('@root/../locales/' + langFileName + '.json').then((locale) => {
-        this.props.changeLanguage(language, locale.default);
-      });
+      import(/* @vite-ignore */ '@root/../locales/' + langFileName + '.json')
+        .then((locale) => {
+          this.props.changeLanguage(language, locale.default);
+        })
+        .catch(() => {
+          this.props.changeLanguage(language, {});
+        });
       this.props.history.push(this.props.location?.state?.translationOf);
     } else {
       this.props.history.push(getBaseUrl(this.props.pathname));
@@ -308,9 +292,9 @@ class Add extends Component {
         this.props.schema.properties,
       );
       const translationObject = this.props.location?.state?.translationObject;
-
       const translateTo = translationObject
-        ? langmap?.[this.props.location?.state?.language]?.nativeName
+        ? langmap?.[this.props.location?.state?.language]?.nativeName ||
+          this.props.location?.state?.language
         : null;
 
       // Get initial blocks from local config, if any
@@ -389,7 +373,7 @@ class Add extends Component {
         <div id="page-add">
           <Helmet
             title={this.props.intl.formatMessage(messages.add, {
-              type: this.props.type,
+              type: this.props?.schema?.title || this.props.type,
             })}
           />
           <Form
@@ -400,27 +384,29 @@ class Add extends Component {
             }
             schema={this.props.schema}
             type={this.props.type}
-            formData={{
-              ...(blocksFieldname && {
-                [blocksFieldname]:
-                  initialBlocks ||
-                  this.props.schema.properties[blocksFieldname]?.default,
-              }),
-              ...(blocksLayoutFieldname && {
-                [blocksLayoutFieldname]: {
-                  items:
-                    initialBlocksLayout ||
-                    this.props.schema.properties[blocksLayoutFieldname]?.default
-                      ?.items,
+            formData={
+              this.props.location?.state?.initialFormData || {
+                ...(blocksFieldname && {
+                  [blocksFieldname]:
+                    initialBlocks ||
+                    this.props.schema.properties[blocksFieldname]?.default,
+                }),
+                ...(blocksLayoutFieldname && {
+                  [blocksLayoutFieldname]: {
+                    items:
+                      initialBlocksLayout ||
+                      this.props.schema.properties[blocksLayoutFieldname]
+                        ?.default?.items,
+                  },
+                }),
+                // Copy the Language Independent Fields values from the to-be translated content
+                // into the default values of the translated content Add form.
+                ...lifData(),
+                parent: {
+                  '@id': this.props.content?.['@id'] || '',
                 },
-              }),
-              // Copy the Language Independent Fields values from the to-be translated content
-              // into the default values of the translated content Add form.
-              ...lifData(),
-              parent: {
-                '@id': this.props.content?.['@id'] || '',
-              },
-            }}
+              }
+            }
             requestError={this.state.error}
             onSubmit={this.onSubmit}
             hideActions
@@ -429,8 +415,8 @@ class Add extends Component {
             title={
               this.props?.schema?.title
                 ? this.props.intl.formatMessage(messages.add, {
-                  type: this.props.schema.title,
-                })
+                    type: this.props.schema.title,
+                  })
                 : null
             }
             loading={this.props.createRequest.loading}
@@ -439,9 +425,13 @@ class Add extends Component {
               this.setState({ formSelected: 'addForm' });
             }}
             global
+            // Properties to pass to the BlocksForm to match the View ones
+            history={this.props.history}
+            location={this.props.location}
+            token={this.props.token}
           />
-          {this.state.isClient && (
-            <Portal node={document.getElementById('toolbar')}>
+          {this.state.isClient &&
+            createPortal(
               <Toolbar
                 pathname={this.props.pathname}
                 hideDefaultViewButtons
@@ -453,6 +443,7 @@ class Add extends Component {
                       aria-label={this.props.intl.formatMessage(messages.save)}
                       onClick={() => this.form.current.onSubmit()}
                       loading={this.props.createRequest.loading}
+                      disabled={this.props.createRequest.loading}
                     >
                       <Icon
                         name={saveSVG}
@@ -461,7 +452,11 @@ class Add extends Component {
                         title={this.props.intl.formatMessage(messages.save)}
                       />
                     </Button>
-                    <Button className="cancel" onClick={() => this.onCancel()}>
+                    <Button
+                      className="cancel"
+                      onClick={() => this.onCancel()}
+                      type="button"
+                    >
                       <Icon
                         name={clearSVG}
                         className="circled"
@@ -474,32 +469,12 @@ class Add extends Component {
                     </Button>
                   </>
                 }
-              />
-            </Portal>
-          )}
-          {this.state.uploadingImage && (
-            <Dimmer active>
-              <Loader indeterminate>
-                {this.props.intl.formatMessage(
-                  messages.uploadingImage,
-                )}
-              </Loader>
-            </Dimmer>
-          )}
-          {this.state.uploading && (
-            <Dimmer active>
-              <Loader indeterminate>
-                {this.props.intl.formatMessage(
-                  messages.uploading,
-                )}
-              </Loader>
-            </Dimmer>
-          )}
-          {visual && this.state.isClient && (
-            <Portal node={document.getElementById('sidebar')}>
-              <Sidebar />
-            </Portal>
-          )}
+              />,
+              document.getElementById('toolbar'),
+            )}
+          {visual &&
+            this.state.isClient &&
+            createPortal(<Sidebar />, document.getElementById('sidebar'))}
         </div>
       );
 
@@ -531,9 +506,12 @@ class Add extends Component {
             <Grid.Column>
               <div className="new-translation">
                 <Menu pointing secondary attached tabular>
-                  <Menu.Item name={translateTo.toUpperCase()} active={true}>
+                  <Menu.Item
+                    name={translateTo?.toUpperCase() || ''}
+                    active={true}
+                  >
                     {`${this.props.intl.formatMessage(messages.translateTo, {
-                      lang: translateTo,
+                      lang: translateTo || '',
                     })}`}
                   </Menu.Item>
                 </Menu>
@@ -561,7 +539,6 @@ export default compose(
       pathname: props.location.pathname,
       returnUrl: qs.parse(props.location.search).return_url,
       type: qs.parse(props.location.search).type,
-      rootTitle: state.navroot?.data?.navroot?.title,
     }),
     { createContent, getSchema, changeLanguage, setFormData },
   ),
