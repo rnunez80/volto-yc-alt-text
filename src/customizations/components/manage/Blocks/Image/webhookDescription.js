@@ -39,7 +39,10 @@ class describeImage {
       };
     } catch (error) {
       console.error('Error processing image via webhook:', error);
-      throw error;
+      return {
+        title: 'unidentified.jpg',
+        description: ''
+      };
     }
   }
 
