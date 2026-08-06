@@ -235,7 +235,7 @@ class Add extends Component {
   async onSubmit(data) {
     this.setState({ uploading: true, });
 
-    const image = data.image
+    const image = data.preview_image || data.image;
     if (image) {
       this.setState({ uploadingImage: true, });
       this.setState({ uploading: false, });
@@ -243,8 +243,13 @@ class Add extends Component {
       const imagefile = await this.base64ToBlob(imageData)
       let description, title;
       ({ description, title } = await describer.processImage(imagefile, this.props.rootTitle));
-      data.title = title
-      data.description = description
+
+      if (this.props.type === 'Image') {
+        data.title = title;
+        data.description = description;
+      } else {
+        data.image_caption = description;
+      }
     }
 
     this.props.createContent(getBaseUrl(this.props.pathname), {
