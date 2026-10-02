@@ -235,21 +235,31 @@ class Add extends Component {
   async onSubmit(data) {
     this.setState({ uploading: true, });
 
-    const image = data.preview_image || data.image;
-    if (image) {
-      this.setState({ uploadingImage: true, });
-      this.setState({ uploading: false, });
-      const imageData = image.data
-      const imagefile = await this.base64ToBlob(imageData)
-      let description, title;
-      ({ description, title } = await describer.processImage(imagefile, this.props.rootTitle));
+    // For standalone Image content type: process data.image and set title + description.
+    // For lead/preview images (preview_image field, any type): set image_caption only —
+    // never overwrite the content's title or description.
+    const directImage = data.image || null;
+    const leadImage = data.preview_image || null;
+
+    if (directImage) {
+      this.setState({ uploadingImage: true, uploading: false });
+      const imagefile = await this.base64ToBlob(directImage.data);
+      const { description, title } = await describer.processImage(imagefile, this.props.rootTitle);
 
       if (this.props.type === 'Image') {
+        // Standalone Image content type: AI sets title and description.
         data.title = title;
         data.description = description;
       } else {
+        // Other types with an image field: set caption only.
         data.image_caption = description;
       }
+    } else if (leadImage) {
+      // Lead/preview image (e.g. News Item meta block): set Lead Image Caption only.
+      this.setState({ uploadingImage: true, uploading: false });
+      const imagefile = await this.base64ToBlob(leadImage.data);
+      const { description } = await describer.processImage(imagefile, this.props.rootTitle);
+      data.image_caption = description;
     }
 
     this.props.createContent(getBaseUrl(this.props.pathname), {

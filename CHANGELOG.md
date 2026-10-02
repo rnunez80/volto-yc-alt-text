@@ -1,5 +1,16 @@
 # Release Notes
 
+## 0.2.4
+
+- Fixed: uploading a lead/preview image when creating a News Item (or any content
+  type with a `preview_image` field) no longer overwrites the item's title and
+  description. The AI-generated text is now correctly applied only to the
+  **Lead Image Caption** (`image_caption`) field.
+- Fixed: uploading an image to a standalone `Image` content type continues to
+  set the item's title and description as expected.
+- Fixed: content types other than `Image` that have a direct `image` field now
+  correctly receive `image_caption` from the AI description.
+
 ## 0.2.1
 
 change model to 'gemini-1.5-flash', since previous model was deprecaded.

@@ -1,6 +1,6 @@
 {
   "name": "volto-yc-alt-text",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "volto-yc-alt-text: Volto add-on",
   "main": "src/index.js",
   "license": "MIT",
