@@ -294,6 +294,7 @@ class Edit extends Component {
         )}
       >
         {data.url ? (
+          <>
           <Image
             className={cx({
               'full-width': data.align === 'full',
@@ -333,6 +334,10 @@ class Edit extends Component {
             loading="lazy"
             responsive={true}
           />
+          {data.show_caption && data.alt && (
+            <figcaption className="image-caption">{data.alt}</figcaption>
+          )}
+          </>
         ) : (
           <div>
             {this.props.editable && (
