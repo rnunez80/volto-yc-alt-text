@@ -48,6 +48,26 @@ For this addon to function properly, your Plone backend **must** implement the `
 
 To install your project, you must choose the method appropriate to your version of Volto.
 
+
+### Volto 18 and Volto 19
+
+In your project root `package.json` or `volto.config.js`:
+
+```js
+module.exports = {
+  addons: ['volto-yc-alt-text'],
+};
+```
+
+And in dependencies:
+```json
+"dependencies": {
+  "volto-yc-alt-text": "*"
+}
+```
+
+Install and build with `pnpm install` and `pnpm build` (or `yarn`).
+
 ### Volto 17 and earlier
 
 Create a new Volto project (you can skip this step if you already have one):

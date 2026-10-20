@@ -1,5 +1,12 @@
 # Release Notes
 
+## 0.3.0
+
+- Added live caption preview in Image block Edit mode (`<figcaption className="image-caption">`) when the "Display alt text as caption" toggle is enabled.
+- Volto 19 compatibility: Updated peerDependencies to support Volto 17, 18, and 19 (`>=17.0.0 || >=18.0.0-alpha.0 || >=19.0.0-alpha.0`).
+- Modernized core helper imports from `@plone/volto/helpers`.
+- Cleaned up build/runtime logging utilities for Node 20 / Volto 19.
+
 ## 0.2.4
 
 - Fixed: uploading a lead/preview image when creating a News Item (or any content
