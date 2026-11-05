@@ -51,9 +51,9 @@ import config from '@plone/volto/registry';
 import saveSVG from '@plone/volto/icons/save.svg';
 import clearSVG from '@plone/volto/icons/clear.svg';
 
-import describeImage from "../Blocks/Image/webhookDescription";
+import describeImage from '../Blocks/Image/webhookDescription';
 
-const describer = new describeImage()
+const describer = new describeImage();
 
 const messages = defineMessages({
   add: {
@@ -79,13 +79,15 @@ const messages = defineMessages({
   someErrors: {
     id: 'There are some errors.',
     defaultMessage: 'There are some errors.',
-  }, uploadingImage: {
+  },
+  uploadingImage: {
     id: 'Uploading image',
     defaultMessage: 'Uploading image and Generating description',
-  }, uploading: {
+  },
+  uploading: {
     id: 'Uploading',
     defaultMessage: 'Uploading...',
-  }
+  },
 });
 
 /**
@@ -150,7 +152,7 @@ class Add extends Component {
       error: null,
       formSelected: 'addForm',
       uploadingImage: false,
-      uploading: false
+      uploading: false,
     };
   }
 
@@ -183,9 +185,8 @@ class Add extends Component {
       );
       this.setState({
         uploadingImage: false,
-        uploading: false
+        uploading: false,
       });
-
     }
 
     if (this.props.createRequest.loading && nextProps.createRequest.error) {
@@ -233,7 +234,7 @@ class Add extends Component {
    * @returns {undefined}
    */
   async onSubmit(data) {
-    this.setState({ uploading: true, });
+    this.setState({ uploading: true });
 
     // For standalone Image content type: process data.image and set title + description.
     // For lead/preview images (preview_image field, any type): set image_caption only —
@@ -244,7 +245,10 @@ class Add extends Component {
     if (directImage) {
       this.setState({ uploadingImage: true, uploading: false });
       const imagefile = await this.base64ToBlob(directImage.data);
-      const { description, title } = await describer.processImage(imagefile, this.props.rootTitle);
+      const { description, title } = await describer.processImage(
+        imagefile,
+        this.props.rootTitle,
+      );
 
       if (this.props.type === 'Image') {
         // Standalone Image content type: AI sets title and description.
@@ -258,7 +262,10 @@ class Add extends Component {
       // Lead/preview image (e.g. News Item meta block): set Lead Image Caption only.
       this.setState({ uploadingImage: true, uploading: false });
       const imagefile = await this.base64ToBlob(leadImage.data);
-      const { description } = await describer.processImage(imagefile, this.props.rootTitle);
+      const { description } = await describer.processImage(
+        imagefile,
+        this.props.rootTitle,
+      );
       data.image_caption = description;
     }
 
@@ -270,9 +277,9 @@ class Add extends Component {
       '@type': this.props.type,
       ...(config.settings.isMultilingual &&
         this.props.location?.state?.translationOf && {
-        translation_of: this.props.location.state.translationOf,
-        language: this.props.location.state.language,
-      }),
+          translation_of: this.props.location.state.translationOf,
+          language: this.props.location.state.language,
+        }),
     });
   }
   base64ToBlob(base64) {
@@ -444,8 +451,8 @@ class Add extends Component {
             title={
               this.props?.schema?.title
                 ? this.props.intl.formatMessage(messages.add, {
-                  type: this.props.schema.title,
-                })
+                    type: this.props.schema.title,
+                  })
                 : null
             }
             loading={this.props.createRequest.loading}
@@ -495,18 +502,14 @@ class Add extends Component {
           {this.state.uploadingImage && (
             <Dimmer active>
               <Loader indeterminate>
-                {this.props.intl.formatMessage(
-                  messages.uploadingImage,
-                )}
+                {this.props.intl.formatMessage(messages.uploadingImage)}
               </Loader>
             </Dimmer>
           )}
           {this.state.uploading && (
             <Dimmer active>
               <Loader indeterminate>
-                {this.props.intl.formatMessage(
-                  messages.uploading,
-                )}
+                {this.props.intl.formatMessage(messages.uploading)}
               </Loader>
             </Dimmer>
           )}

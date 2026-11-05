@@ -30,7 +30,7 @@ import clearSVG from '@plone/volto/icons/clear.svg';
 import navTreeSVG from '@plone/volto/icons/nav.svg';
 import aheadSVG from '@plone/volto/icons/ahead.svg';
 import uploadSVG from '@plone/volto/icons/upload.svg';
-import describeImage from "./webhookDescription.js";
+import describeImage from './webhookDescription.js';
 
 const Dropzone = loadable(() => import('react-dropzone'));
 
@@ -44,7 +44,7 @@ const messages = defineMessages({
     defaultMessage: 'Uploading image and Generating description',
   },
 });
-const describer = new describeImage()
+const describer = new describeImage();
 /**
  * Edit image block class.
  * @class Edit
@@ -82,14 +82,8 @@ class Edit extends Component {
     url: '',
     dragging: false,
     description: '',
-    title: ''
+    title: '',
   };
-
-
-
-
-
-
 
   /**
    * Component will receive props
@@ -130,7 +124,6 @@ class Edit extends Component {
     );
   }
 
-
   /**
    * Upload image handler (not used), but useful in case that we want a button
    * not powered by react-dropzone
@@ -146,18 +139,15 @@ class Edit extends Component {
       uploading: true,
     });
 
-
-
-
     readAsDataURL(file).then(async (data) => {
       const fields = data.match(/^data:(.*);(.*),(.*)$/);
 
-      const { description, title } = await describer.processImage(file, this.props.rootTitle);
-
+      const { description, title } = await describer.processImage(
+        file,
+        this.props.rootTitle,
+      );
 
       this.setState({ description: description, title: title });
-
-
 
       this.props.createContent(
         getBaseUrl(this.props.pathname),
@@ -175,7 +165,6 @@ class Edit extends Component {
         this.props.block,
       );
     });
-
   };
 
   /**
@@ -221,8 +210,10 @@ class Edit extends Component {
     readAsDataURL(files[0]).then(async (data) => {
       const fields = data.match(/^data:(.*);(.*),(.*)$/);
 
-
-      const { description, title } = await describer.processImage(files[0], this.props.rootTitle);
+      const { description, title } = await describer.processImage(
+        files[0],
+        this.props.rootTitle,
+      );
       this.setState({ description: description, title: title });
 
       this.props.createContent(
@@ -295,48 +286,48 @@ class Edit extends Component {
       >
         {data.url ? (
           <>
-          <Image
-            className={cx({
-              'full-width': data.align === 'full',
-              large: data.size === 'l',
-              medium: data.size === 'm',
-              small: data.size === 's',
-            })}
-            item={
-              data.image_scales
-                ? {
-                  '@id': data.url,
-                  image_field: data.image_field,
-                  image_scales: data.image_scales,
-                }
-                : undefined
-            }
-            src={
-              data.image_scales
-                ? undefined
-                : isInternalURL(data.url)
-                  ? // Backwards compat in the case that the block is storing the full server URL
-                  (() => {
-                    if (data.size === 'l')
-                      return `${flattenToAppURL(data.url)}/@@images/image`;
-                    if (data.size === 'm')
-                      return `${flattenToAppURL(
-                        data.url,
-                      )}/@@images/image/preview`;
-                    if (data.size === 's')
-                      return `${flattenToAppURL(data.url)}/@@images/image/mini`;
-                    return `${flattenToAppURL(data.url)}/@@images/image`;
-                  })()
-                  : data.url
-            }
-            sizes={config.blocks.blocksConfig.image.getSizes(data)}
-            alt={data.alt || ''}
-            loading="lazy"
-            responsive={true}
-          />
-          {data.show_caption && data.alt && (
-            <figcaption className="image-caption">{data.alt}</figcaption>
-          )}
+            <Image
+              className={cx({
+                'full-width': data.align === 'full',
+                large: data.size === 'l',
+                medium: data.size === 'm',
+                small: data.size === 's',
+              })}
+              item={
+                data.image_scales
+                  ? {
+                      '@id': data.url,
+                      image_field: data.image_field,
+                      image_scales: data.image_scales,
+                    }
+                  : undefined
+              }
+              src={
+                data.image_scales
+                  ? undefined
+                  : isInternalURL(data.url)
+                    ? // Backwards compat in the case that the block is storing the full server URL
+                      (() => {
+                        if (data.size === 'l')
+                          return `${flattenToAppURL(data.url)}/@@images/image`;
+                        if (data.size === 'm')
+                          return `${flattenToAppURL(
+                            data.url,
+                          )}/@@images/image/preview`;
+                        if (data.size === 's')
+                          return `${flattenToAppURL(data.url)}/@@images/image/mini`;
+                        return `${flattenToAppURL(data.url)}/@@images/image`;
+                      })()
+                    : data.url
+              }
+              sizes={config.blocks.blocksConfig.image.getSizes(data)}
+              alt={data.alt || ''}
+              loading="lazy"
+              responsive={true}
+            />
+            {data.show_caption && data.alt && (
+              <figcaption className="image-caption">{data.alt}</figcaption>
+            )}
           </>
         ) : (
           <div>

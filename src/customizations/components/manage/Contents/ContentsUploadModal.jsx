@@ -26,10 +26,10 @@ import { FormattedMessage, defineMessages, injectIntl } from 'react-intl';
 import { FormattedRelativeDate } from '@plone/volto/components';
 import { createContent } from '@plone/volto/actions';
 import { validateFileUploadSize } from '@plone/volto/helpers';
-import describeImage from "../Blocks/Image/webhookDescription";
+import describeImage from '../Blocks/Image/webhookDescription';
 
 const Dropzone = loadable(() => import('react-dropzone'));
-const describer = new describeImage()
+const describer = new describeImage();
 const messages = defineMessages({
   cancel: {
     id: 'Cancel',
@@ -39,7 +39,8 @@ const messages = defineMessages({
     id: '{count, plural, one {Upload {count} file} other {Upload {count} files}}',
     defaultMessage:
       '{count, plural, one {Upload {count} file} other {Upload {count} files}}',
-  }, uploadingImage: {
+  },
+  uploadingImage: {
     id: 'Uploading image',
     defaultMessage: 'Uploading files or Generating description',
   },
@@ -70,7 +71,7 @@ class ContentsUploadModal extends Component {
     onCancel: PropTypes.func.isRequired,
   };
   state = {
-    uploading: false
+    uploading: false,
   };
   /**
    * Constructor
@@ -89,7 +90,6 @@ class ContentsUploadModal extends Component {
     };
   }
 
-
   /**
    * Component will receive props
    * @method componentWillReceiveProps
@@ -97,8 +97,11 @@ class ContentsUploadModal extends Component {
    * @returns {undefined}
    */
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if (this.props.request.loading && nextProps.request.loaded &&
-      this.state.uploading) {
+    if (
+      this.props.request.loading &&
+      nextProps.request.loaded &&
+      this.state.uploading
+    ) {
       this.setState({
         uploading: false,
       });
@@ -165,41 +168,43 @@ class ContentsUploadModal extends Component {
    * @returns {undefined}
    */
   async onSubmit() {
-    this.setState({ uploading: true, });
+    this.setState({ uploading: true });
     // Read all files as Data URLs
-    const files = await Promise.all(this.state.files.map(file => readAsDataURL(file)));
+    const files = await Promise.all(
+      this.state.files.map((file) => readAsDataURL(file)),
+    );
     // Process each file and create the content data
-    const contentData = await Promise.all(this.state.files.map(async (file, index) => {
-      const fields = files[index].match(/^data:(.*);(.*),(.*)$/);
-      const image = fields[1].split('/')[0] === 'image';
+    const contentData = await Promise.all(
+      this.state.files.map(async (file, index) => {
+        const fields = files[index].match(/^data:(.*);(.*),(.*)$/);
+        const image = fields[1].split('/')[0] === 'image';
 
-      let description = null;
-      let title = null;
-      if (image) {
-        ({ description, title } = await describer.processImage(file, this.props.rootTitle));
-      }
+        let description = null;
+        let title = null;
+        if (image) {
+          ({ description, title } = await describer.processImage(
+            file,
+            this.props.rootTitle,
+          ));
+        }
 
-      return {
-        '@type': image ? 'Image' : 'File',
-        title: image ? title : file.name,
-        description: image ? description : null,
-        [image ? 'image' : 'file']: {
-          data: fields[3],
-          encoding: fields[2],
-          'content-type': fields[1],
-          filename: file.name,
-        },
-      };
-    }));
+        return {
+          '@type': image ? 'Image' : 'File',
+          title: image ? title : file.name,
+          description: image ? description : null,
+          [image ? 'image' : 'file']: {
+            data: fields[3],
+            encoding: fields[2],
+            'content-type': fields[1],
+            filename: file.name,
+          },
+        };
+      }),
+    );
 
     // Call createContent with the processed data
-    this.props.createContent(
-      this.props.pathname,
-      contentData,
-      SUBREQUEST,
-    );
-  };
-
+    this.props.createContent(this.props.pathname, contentData, SUBREQUEST);
+  }
 
   /**
    * Render method.
@@ -341,9 +346,7 @@ class ContentsUploadModal extends Component {
             {this.state.uploading && (
               <Dimmer active>
                 <Loader indeterminate>
-                  {this.props.intl.formatMessage(
-                    messages.uploadingImage,
-                  )}
+                  {this.props.intl.formatMessage(messages.uploadingImage)}
                 </Loader>
               </Dimmer>
             )}

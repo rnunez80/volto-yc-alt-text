@@ -17,7 +17,7 @@ class describeImage {
       const response = await fetch('/++api++/@alt_text_generator', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json'
+          Accept: 'application/json',
         },
         body: formData,
       });
@@ -27,21 +27,21 @@ class describeImage {
       }
 
       const result = await response.json();
-      
+
       if (result.error) {
         throw new Error(`Backend Error: ${result.error}`);
       }
-      
+
       const data = result.data || {};
       return {
         title: data.title || '',
-        description: data.description || ''
+        description: data.description || '',
       };
     } catch (error) {
       console.error('Error processing image via webhook:', error);
       return {
         title: 'unidentified.jpg',
-        description: ''
+        description: '',
       };
     }
   }
@@ -77,9 +77,17 @@ class describeImage {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          canvas.toBlob((blob) => {
-            resolve(new File([blob], file.name || 'image.jpg', { type: 'image/jpeg' }));
-          }, 'image/jpeg', 0.8);
+          canvas.toBlob(
+            (blob) => {
+              resolve(
+                new File([blob], file.name || 'image.jpg', {
+                  type: 'image/jpeg',
+                }),
+              );
+            },
+            'image/jpeg',
+            0.8,
+          );
         };
         img.onerror = reject;
         img.src = e.target.result;
